@@ -1,0 +1,208 @@
+Порядок установки и настройки модуля интеграции nginx и хостинг-панели ispCP (Русский язык)
+
+***************************************************************************
+***************************************************************************
+***	Разработка модуля - koffu					***
+***	Инструкция - Enkil						***
+***	Адаптация инструкции - DragonZX					***
+***	Версия модуля - 0.7.1						***
+***	Успешное тестирование на системе (при написании инструкции) - 	***
+***									***
+***	ispCP 1.0.7 OMEGA						***
+***	build: 20100819							***
+***	Операционная система: Ubuntu Server 10.4 LTS			***
+***************************************************************************
+***************************************************************************
+
+Считаем, что у Вас уже установлена, настроена и работает сама хостинг-панель, и Вы решили добавить в качестве фронт-энда к апачу nginx
+
+Создаем папку для скрипта
+
+	# cd /usr/local/src
+	# mkdir ispcp-nginx
+	# cd ispcp-nginx
+
+Скачиваем последнюю версию скрипта с форума.
+
+	# wget http://isp-control.net/forum/attachment.php?aid=1437 (В данном виде скорей не сработает, поэтому качаем руками)
+	# tar xvfz ispcp-nginx-0.7.1.tar.gz
+
+Создаем папку и копируем туда скрипт
+
+	# mkdir /usr/local/nginx
+	# cp -r ispcp-nginx-0.7.1/* /usr/local/nginx
+	# cd /usr/local/nginx
+
+***********************************************************************************************************
+***					Устанавливаем mod_rpaf						***
+***********************************************************************************************************
+***													***
+***													***
+*** 	# apt-get install libhtml-parser-perl libwww-perl libcompress-zlib-perl apache2-prefork-dev	***
+*** 													***
+*** Перезагружаем Apache										***
+***													***
+***	# /etc/init.d/apache2 restart									***
+*** 													***
+*** Скачиваем и устанавливаем mod_rpaf									***
+***													***
+***	# cd /usr/local/src										***
+***	# wget http://stderr.net/apache/rpaf/download/mod_rpaf-0.6.tar.gz				***
+***	# tar xzf mod_rpaf-0.6.tar.gz									***
+***	# cd mod_rpaf-0.6										***
+***	# apxs2 -i -c -n mod_rpaf-2.0.so mod_rpaf-2.0.c							***
+***													***
+*** Создаем файл rpaf-2.0.load и вписываем туда								***
+*** 	LoadModule rpaf_module /usr/lib/apache2/modules/mod_rpaf-2.0.so					***
+***	RPAFenable On											***
+***	RPAFsethostname On										***
+***	RPAFproxy_ips 127.0.0.0 x.x.x.x									***
+***													***
+*** Где 127.0.0.0 и x.x.x.x, это IP-адреса прокси серверов с которых приходит запрос (например nginx)	***
+*** Сохраняем и закачиваем файл в раздел								***
+*** 	/etc/apache2/mods-available/									***
+***													***
+*** Включаем модуль mod_rpaf										***
+***	# a2enmod rpaf-2.0										***
+***													***
+*** Перезапускаем Apache										***
+***	# /etc/init.d/apache2 restart									***
+***													***
+***													***
+*** Всё. Теперь IP-адреса посетителей должны определять снова нормально.				***
+***													***
+*** Для проверки работы модуля mod_rpaf на любом из доменов, которые расположены на Вашем сервере, 	***
+*** разместите файл test.php с содержимым:								***
+***													***
+***	<?												***
+***	echo $_SERVER['REMOTE_ADDR'];									***
+***	?>												***
+***													***	
+***********************************************************************************************************
+***********************************************************************************************************
+
+Установка nginx
+	# wget http://sysoev.ru/nginx/nginx-0.8.50.tar.gz
+	# tar xzf nginx-0.8.50.tar.gz
+	# cd nginx-0.8.50
+	# aptitude install libpcre3-dev libssl-dev
+	# ./configure --with-http_realip_module --with-http_addition_module --with-http_gzip_static_module --with-http_stub_status_module && make -j2 && make install 
+	# mkdir /var/log/nginx && chown www-data:www-data /var/log/nginx 
+
+После установки nginx создаём пользователя в MySQL базе.
+	# mysql -u root -p ispcp
+
+	USE ispcp
+	grant select on ispcp.domain to 'nginx'@'localhost' identified by 'ваш пароль';
+	grant select on ispcp.subdomain to 'nginx'@'localhost' identified by 'ваш пароль';
+	grant select on ispcp.domain_aliasses to 'nginx'@'localhost' identified by 'ваш пароль';
+	exit
+
+Переносим админку панели на 443 порт
+
+	# mkdir /etc/apache2/ssl
+	# openssl req -x509 -days 3650 -nodes -new -newkey rsa:2048 -out /etc/apache2/ssl/ispcpweb.pem -keyout /etc/apache2/ssl/ispcpweb.pem 
+	# chmod 600 /etc/apache2/ssl/ispcpweb.pem
+	# a2enmod ssl
+
+Проверяем конфигурацию Apache
+
+	# nano /etc/apache2/ports.conf
+
+Вы увидите что-то наподобие
+
+		NameVirtualHost 111.222.333.444:80 
+		Listen 111.222.333.444:80 
+
+Меняем порт, на котором работает админка
+
+	# nano /etc/apache2/sites-available/00_master.conf
+
+Полностью копируем секцию
+
+	<VirtualHost 111.222.333.444:80> 
+	содержимое секции 
+	</VirtualHost>
+и немного изменяем содержимое секций
+
+данный конфиг-файл должен содержать
+
+	<VirtualHost 111.222.333.444:80>
+			RewriteEngine On 
+			RewriteCond %{HTTPS} off 
+			RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} 
+		
+			содержимое секции 
+	</VirtualHost>
+и ниже
+	<VirtualHost 111.222.333.444:443>
+			SSLEngine on
+			SSLCertificateFile /etc/apache2/ssl/ispcpweb.pem
+		
+			содержимое секции 
+	</VirtualHost>
+ 
+Добавляем ротацию логов nginx
+	# nano /etc/logrotate.d/nginx
+	
+	/var/log/nginx/*.log { 
+        	daily 
+	        missingok 
+	        rotate 20 
+	        compress 
+	        delaycompress 
+	        notifempty 
+	        create 640 root adm 
+	        sharedscripts 
+	        postrotate 
+	                if [ $(ps ax | grep nginx | grep -v grep | wc -l) = "0" ]; then killall -s HUP nginx; fi 
+	        endscript 
+	} 
+	
+Изменяем настройки обращения к админке панели
+	# nano /etc/ispcp/ispcp.conf 
+	BASE_SERVER_VHOST_PREFIX = https:// 
+	
+Для корректной работы phpmyadmin меняем содержимое
+
+	# nano /var/www/ispcp/gui/client/sql_auth.php
+на
+	$fp = fsockopen('ssl://'.Config::get('BASE_SERVER_IP'), 443, $errno, $errstr, 5);
+----------------------------------------------------------------------------------------------------------------------
+	
+Добавляем домены и поддомены, для которых надо переопределить конфигурацию, в папку /conf.d
+
+touch /usr/local/nginx/conf.d/site1.ru
+touch /usr/local/nginx/conf.d/site2.ru
+touch /usr/local/nginx/conf.d/subdomain.site1.ru
+touch /usr/local/nginx/conf.d/subdomain.site2.ru
+
+После запускаем скрипт 
+	# ./ispcp-nginx.pl
+
+При корректной работе скрипта Вы должны увидеть примерно следующее
+
+	Writing global nginx configuration file...
+	Writing nginx.conf...done
+	Converted subdomain.site1.ru
+	Converted	site1.ru
+	Converted subdomain.site2.ru
+	Converted	site2.ru
+	Writing nginx virtual hosts configuration file...
+	Writing vhosts.conf...done
+
+Проверяем синтаксис файлов конфигурации
+	#nano /usr/local/nginx/sbin/nginx -t
+ 
+Должно быть примерно следующее
+	the configuration file /usr/local/nginx/conf/nginx.conf syntax is ok
+	configuration file /usr/local/nginx/conf/nginx.conf test is successful
+
+Добавляем в Ваш скрипт iptables перенаправление всего входящего на сервер трафика по 80 порту на 81 порт
+	# iptables -t nat -A PREROUTING ! -s 127.0.0.1 -d ваш_ip_на_котром_слушает_апач -p tcp --dport 80 -j REDIRECT --to-ports 81
+
+Перезагружаемся или перезапускаем апач и nginx
+	# /etc/init.d/apache2 restart
+	# kill -HUP `cat /var/run/nginx.pid` - заставляет nginx перечитать свои конфиги
+
+Заходим в админку и обслуживаемые сайты и проверяем работу.
