@@ -191,7 +191,7 @@ if ($use_php eq "yes" ) {
 $str .= "# uncomment location below to make nginx serve static files instead of Apache
 # !WARNING!
 # it will make the bandwidth accounting incorrect as these files won’t be logged!
-location ~* \\.\(gif|jpg|jpeg|png|wmv|avi|mpg|mpeg|mp4|js|css|bmp|csv|doc|epg|gif|ico|odj|mp3|pdf|swf|txt|xls|xcf|iso\) \{
+location ~* \\.\(gif|jpg|jpeg|png|wmv|avi|mpg|mpeg|mp4|js|css|bmp|csv|doc|epg|gif|ico|odj|mp3|pdf|swf|txt|xls|xcf|iso\)$ \{
 root   $config{APACHE_WWW_DIR}/$domain/$INTCFG{PUBLICFOLDER}/;
 \}\n
 location ~* \\.php \{
@@ -207,7 +207,7 @@ else {
 $str .= "# uncomment location below to make nginx serve static files instead of Apache
 # !WARNING! 
 # it will make the bandwidth accounting incorrect as these files won’t be logged!
-#location ~* \\.\(gif|jpg|jpeg|png|wmv|avi|mpg|mpeg|mp4|js|css|bmp|csv|doc|epg|gif|ico|odj|mp3|pdf|swf|txt|xls|xcf|iso\) \{
+#location ~* \\.\(gif|jpg|jpeg|png|wmv|avi|mpg|mpeg|mp4|js|css|bmp|csv|doc|epg|gif|ico|odj|mp3|pdf|swf|txt|xls|xcf|iso\)$ \{
 #root   $config{APACHE_WWW_DIR}/$domain/$INTCFG{PUBLICFOLDER}/;
 #\}\n
 #location ~* \\.php \{
@@ -265,7 +265,7 @@ if ($use_php eq "yes" ) {
 $str .= "# uncomment location below to make nginx serve static files instead of Apache
 # !WARNING!
 # it will make the bandwidth accounting incorrect as these files won’t be logged!
-location ~* \\.\(gif|jpg|jpeg|png|wmv|avi|mpg|mpeg|mp4|js|css|bmp|csv|doc|epg|gif|ico|odj|mp3|pdf|swf|txt|xls|xcf|iso\) \{
+location ~* \\.\(gif|jpg|jpeg|png|wmv|avi|mpg|mpeg|mp4|js|css|bmp|csv|doc|epg|gif|ico|odj|mp3|pdf|swf|txt|xls|xcf|iso\)$ \{
 root   $config{APACHE_WWW_DIR}/${domain}${subdomain_mount}/htdocs/;
 \}\n
 location ~* \\.php \{
@@ -281,7 +281,7 @@ else {
 $str .= "# uncomment location below to make nginx serve static files instead of Apache
 # !WARNING! 
 # it will make the bandwidth accounting incorrect as these files won’t be logged!
-#location ~* \\.\(gif|jpg|jpeg|png|wmv|avi|mpg|mpeg|mp4|js|css|bmp|csv|doc|epg|gif|ico|odj|mp3|pdf|swf|txt|xls|xcf|iso\) \{
+#location ~* \\.\(gif|jpg|jpeg|png|wmv|avi|mpg|mpeg|mp4|js|css|bmp|csv|doc|epg|gif|ico|odj|mp3|pdf|swf|txt|xls|xcf|iso\)$ \{
 #root   $config{APACHE_WWW_DIR}/${domain}${subdomain_mount}/htdocs/;
 #\}\n
 #location ~* \\.php \{
@@ -346,7 +346,7 @@ if ($use_php eq "yes" ) {
 $str .= "# uncomment location below to make nginx serve static files instead of Apache
 # !WARNING!
 # it will make the bandwidth accounting incorrect as these files won’t be logged!
-location ~* \\.\(gif|jpg|jpeg|png|wmv|avi|mpg|mpeg|mp4|js|css|bmp|csv|doc|epg|gif|ico|odj|mp3|pdf|swf|txt|xls|xcf|iso\) \{
+location ~* \\.\(gif|jpg|jpeg|png|wmv|avi|mpg|mpeg|mp4|js|css|bmp|csv|doc|epg|gif|ico|odj|mp3|pdf|swf|txt|xls|xcf|iso\)$ \{
 root   $config{APACHE_WWW_DIR}/${domain}${alias_mount}/htdocs/;
 \}\n
 location ~* \\.php \{
@@ -362,7 +362,7 @@ else {
 $str .= "# uncomment location below to make nginx serve static files instead of Apache
 # !WARNING! 
 # it will make the bandwidth accounting incorrect as these files won’t be logged!
-#location ~* \\.\(gif|jpg|jpeg|png|wmv|avi|mpg|mpeg|mp4|js|css|bmp|csv|doc|epg|gif|ico|odj|mp3|pdf|swf|txt|xls|xcf|iso\) \{
+#location ~* \\.\(gif|jpg|jpeg|png|wmv|avi|mpg|mpeg|mp4|js|css|bmp|csv|doc|epg|gif|ico|odj|mp3|pdf|swf|txt|xls|xcf|iso\)$ \{
 #root   $config{APACHE_WWW_DIR}/${domain}${alias_mount}/htdocs/;
 #\}\n
 #location ~* \\.php \{

@@ -1,0 +1,204 @@
+Инсталиране на модула nginx за хостинг панела ispCP (Български език)
+
+***************************************************************************
+***************************************************************************
+***    Разработка на модула - koffu                    			***
+***    Инструкция - Enkil                        			***
+***    Адаптация инструкции - DragonZX, Alex1                  		***
+***    Версия модуля - 0.7.1                        			***
+***    Успешно тестване на системата (при писане на интструкции)     	***
+***                                    					***
+***    ispCP 1.0.7 OMEGA                        			***
+***    build: 20100819                            			***
+***    Операционна система: Ubuntu Server 10.4 LTS            		***
+***************************************************************************
+***************************************************************************
+
+Подготовка за инсталация
+
+Ние мислим, че сте инсталирали вече панела и той работи и сте решили да добавите apache nginx мод
+
+
+Създаваме папка за скрипта
+
+#cd /usr/local/src
+# mkdir ispcp-nginx
+# cd ispcp-nginx
+
+Изтеглете най-новата версия на панела от форума
+
+# wget http://repo.public-source.ru/ispcp-omega/mods/ispcp2nginx/ispcp-nginx-0.7.1.tar.gz
+# tar xvfz ispcp-nginx-0.7.1.tar.gz
+
+Създаваме папка и копираме скрипта
+# mkdir /usr/local/nginx
+# cp -r ispcp-nginx-0.7.1/* /usr/local/nginx
+# cd /usr/local/nginx
+
+Инсталираме mod_rpaf
+
+Инсталираме необходимите модули
+
+# apt-get install libhtml-parser-perl libwww-perl libcompress-zlib-perl apache2-prefork-dev
+
+Рестартираме Apache
+
+# /etc/init.d/apache2 restart
+
+Сваляме и инсталираме mod_rpaf
+# cd /usr/local/src
+# wget http://stderr.net/apache/rpaf/download/mod_rpaf-0.6.tar.gz
+# tar xzf mod_rpaf-0.6.tar.gz
+# cd mod_rpaf-0.6
+# apxs2 -i -c -n mod_rpaf-2.0.so mod_rpaf-2.0.c
+
+Създаваме файл rpaf-2.0.load и вписваме това
+
+LoadModule rpaf_module /usr/lib/apache2/modules/mod_rpaf-2.0.so
+RPAFenable On
+RPAFsethostname On
+RPAFproxy_ips 127.0.0.0 x.x.x.x
+
+Включваме модула
+
+# a3enmod rpaf-2.0
+
+рестартираме Apache
+
+# /etc/init.d/apache2 restart
+
+За да проверим дали модула mod_rpaf работи направете файл test.php с това съдържание:
+
+<?
+echo $_SERVER['REMOTE_ADDR'];
+?>
+
+Инсталиране на nginx
+
+    # wget http://sysoev.ru/nginx/nginx-0.8.50.tar.gz
+    # tar xzf nginx-0.8.50.tar.gz
+    # cd nginx-0.8.50
+    # aptitude install libpcre3-dev libssl-dev
+    # ./configure --with-http_realip_module --with-http_addition_module --with-http_gzip_static_module --with-http_stub_status_module && make -j2 && make install
+    # mkdir /var/log/nginx && chown www-data:www-data /var/log/nginx
+
+След инсталацията на nginx създаваме база данни.
+
+# mysql -u root -p ispcp
+
+USE ispcp
+grant select on ispcp.domain to 'nginx'@'localhost' identified by 'вашата парола';
+grant select on ispcp.subdomain to 'nginx'@'localhost' identified by 'вашата парола';
+grant select on ispcp.domain_aliasses to 'nginx'@'localhost' identified by 'вашата парола';
+exit
+
+Прехвърляне на администраторския панел на 443 порт
+
+# mkdir /etc/apache2/ssl
+# openssl req -x509 -days 3650 -nodes -new -newkey rsa:2048 -out /etc/apache2/ssl/ispcpweb.pem -keyout /etc/apache2/ssl/ispcpweb.pem
+# chmod 600 /etc/apache2/ssl/ispcpweb.pem
+# a2enmod ssl
+
+Проверяваме конфигурацията на Apache
+
+# nano /etc/apache2/ports.conf
+
+Променяме порта, на който работи админа
+
+Пълно копиране на раздела
+
+<VirtualHost 111.222.333.444:80>
+содержимое секции
+</VirtualHost>
+
+и променяме съдържанието на раздела
+
+файла трябва да съдържа
+
+<VirtualHost 111.222.333.444:80>
+        RewriteEngine On
+        RewriteCond %{HTTPS} off
+        RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
+    
+        съдържанието на раздела
+</VirtualHost>
+
+и по-долу
+
+<VirtualHost 111.222.333.444:443>
+        SSLEngine on
+        SSLCertificateFile /etc/apache2/ssl/ispcpweb.pem
+    
+        содержимое секции
+</VirtualHost>
+
+Добавяме зареждането на nginx
+
+# nano /etc/logrotate.d/nginx
+
+/var/log/nginx/*.log {
+          daily
+        missingok
+        rotate 20
+        compress
+        delaycompress
+        notifempty
+        create 640 root adm
+        sharedscripts
+        postrotate
+                if [ $(ps ax | grep nginx | grep -v grep | wc -l) = "0" ]; then killall -s HUP nginx; fi
+        endscript
+}
+
+Промяна на настройките за достъп до администраторския панел
+
+nano /etc/ispcp/ispcp.conf
+BASE_SERVER_VHOST_PREFIX = https://
+
+За да работи правилно трябва да се промени и съдържанието на phpmyadmin
+
+# nano /var/www/ispcp/gui/client/sql_auth.php
+
+на
+
+$fp = fsockopen('ssl://'.Config::get('BASE_SERVER_IP'), 443, $errno, $errstr, 5);
+
+Добавяне на домейни и поддомейни, за което следва да се отмени конфигурация в папката /conf.d
+
+touch /usr/local/nginx/conf.d/site1.bg
+touch /usr/local/nginx/conf.d/site2.bg
+touch /usr/local/nginx/conf.d/subdomain.site1.bg
+touch /usr/local/nginx/conf.d/subdomain.site2.bg
+
+После пускаме скрипта
+
+# ./ispcp-nginx.pl
+
+Когато скриптът работи правилно трябва да видите нещо подобно
+
+//Writing global nginx configuration file...
+Writing nginx.conf...done
+Converted subdomain.site1.bg
+Converted    site1.bg
+Converted subdomain.site2.bg
+Converted    site2.bg
+Writing nginx virtual hosts configuration file...
+Writing vhosts.conf...done//
+
+проверка на синтаксиса на конфигурационните файлове
+
+# /usr/local/nginx/sbin/nginx -t
+
+Трябва да има нещо подобно
+
+the configuration file /usr/local/nginx/conf/nginx.conf syntax is ok
+configuration file /usr/local/nginx/conf/nginx.conf test is successful
+
+Добавяме в IPTABLES и пренасочваме целият входящ трафик към сървъра на порт 80 - 81
+
+# iptables -t nat -A PREROUTING ! -s 127.0.0.1 -d Вашият ip address -p tcp --dport 80 -j REDIRECT --to-ports 81
+
+Рестартирайте apache и nginx
+
+# /etc/init.d/apache2 restart
+# kill -HUP `cat /var/run/nginx.pid`
